@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 export default function ShortenForm(){
   const [target, setTarget] = useState('')
   const [result, setResult] = useState<any>(null)
+  const backendOrigin = 'http://localhost:8000'
 
   async function submit(e: React.FormEvent){
     e.preventDefault()
@@ -21,7 +22,7 @@ export default function ShortenForm(){
       <button type="submit">Shorten</button>
       {result && (
         <div className="result">
-          Short URL: <a href={`/${result.alias}`} target="_blank" rel="noreferrer">{window.location.origin}/{result.alias}</a>
+          Short URL: <a href={`${backendOrigin}/${result.alias}`} target="_blank" rel="noreferrer">{backendOrigin}/{result.alias}</a>
         </div>
       )}
     </form>
