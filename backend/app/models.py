@@ -20,5 +20,6 @@ class ClickEvent(SQLModel, table=True):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     ip: Optional[str] = None
     ua: Optional[str] = None
+    country: Optional[str] = Field(default="XX")  # ISO 2-letter country code
 
     url: Optional[URL] = Relationship(back_populates='events')
