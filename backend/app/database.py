@@ -1,19 +1,25 @@
 import os
 from sqlmodel import SQLModel, create_engine, Session
-from typing import Generator
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/url_shortener")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data.db")
 
-engine = create_engine(DATABASE_URL, echo=False)
+# For SQLite only: allow multiple threads in dev
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, echo=False, connect_args=connect_args)
 
 
-def init_db(database_url: str | None = None):
-    global engine
-    if database_url:
-        engine = create_engine(database_url, echo=False)
+def init_db() -> None:
+    """
+    Create database tables. Call at application startup.
+    """
     SQLModel.metadata.create_all(engine)
 
 
-def get_session() -> Generator[Session, None, None]:
+def get_session():
+    """
+    Generator that yields a SQLModel Session so callers can call next(get_session()).
+    Example (used in this project): session = next(get_session())
+    """
     with Session(engine) as session:
         yield session

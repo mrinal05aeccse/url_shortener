@@ -1,5 +1,11 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.venv/
 .env
-backend/.venv
-.envrc
+backend/data/
+node_modules/
+dist/
+.vscode/
+.DS_Store
