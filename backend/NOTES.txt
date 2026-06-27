@@ -1,0 +1,3 @@
+Update: Add Redis-backed rate limit helper and optional usage notes.
+
+Currently the app uses a simple in-memory approach; production should use Redis.
