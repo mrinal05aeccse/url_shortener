@@ -1,12 +1,12 @@
-import os
-from fastapi import FastAPI, HTTPException, status
+from datetime import datetime, timedelta
+from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, AnyUrl
-from datetime import datetime, timedelta
 from sqlmodel import select
+import os
 
 from .database import init_db, get_session
-from .models import URL
+from .models import URL, ClickEvent
 from .utils import generate_alias
 
 app = FastAPI(title="URL Shortener MVP")
@@ -44,7 +44,7 @@ def create_short_url(body: ShortenRequest):
         alias = body.custom_alias
     else:
         # generate until unique
-        for _ in range(5):
+        for _ in range(10):
             alias = generate_alias()
             statement = select(URL).where(URL.alias == alias)
             if not session.exec(statement).first():
@@ -65,7 +65,7 @@ def create_short_url(body: ShortenRequest):
 
 
 @app.get("/{alias}")
-def redirect_alias(alias: str):
+def redirect_alias(alias: str, request: Request):
     session = next(get_session())
     statement = select(URL).where(URL.alias == alias)
     url = session.exec(statement).first()
@@ -74,7 +74,12 @@ def redirect_alias(alias: str):
     if url.expires_at and datetime.utcnow() > url.expires_at:
         raise HTTPException(status_code=404, detail="expired")
 
-    # increment clicks
+    # record click event
+    ip = request.client.host if request.client else None
+    ua = request.headers.get('user-agent')
+    event = ClickEvent(url_id=url.id, ip=ip, ua=ua)
+    session.add(event)
+    # also increment aggregate counter (fast read)
     url.clicks += 1
     session.add(url)
     session.commit()
@@ -92,3 +97,32 @@ def info(alias: str, api_key: str | None = None):
     if not url:
         raise HTTPException(status_code=404, detail="not found")
     return {"alias": url.alias, "target": url.target, "clicks": url.clicks, "created_at": url.created_at.isoformat(), "expires_at": url.expires_at.isoformat() if url.expires_at else None}
+
+
+@app.get("/api/v1/analytics/{alias}")
+def analytics(alias: str, days: int = 7, api_key: str | None = None):
+    if api_key != ADMIN_API_KEY:
+        raise HTTPException(status_code=401, detail="unauthorized")
+    session = next(get_session())
+    statement = select(URL).where(URL.alias == alias)
+    url = session.exec(statement).first()
+    if not url:
+        raise HTTPException(status_code=404, detail="not found")
+
+    # aggregate click events by day for the last `days` days
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    stmt = select(ClickEvent).where(ClickEvent.url_id == url.id, ClickEvent.timestamp >= cutoff)
+    events = session.exec(stmt).all()
+
+    # bucket by date
+    counts = {}
+    for e in events:
+        day = e.timestamp.date().isoformat()
+        counts[day] = counts.get(day, 0) + 1
+
+    return {
+        "alias": alias,
+        "total_clicks": url.clicks,
+        "recent_days": days,
+        "daily_counts": counts,
+    }
