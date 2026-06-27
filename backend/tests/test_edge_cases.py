@@ -28,7 +28,7 @@ class TestExpiredURLs:
     def test_expired_url_returns_404(self):
         """Test that accessing an expired URL returns 404."""
         # Create an already-expired URL
-        from backend.app.database import get_session
+        from app.database import get_session
         
         resp = client.post("/api/v1/shorten", json={
             "target": "https://example.com",
@@ -44,7 +44,7 @@ class TestExpiredURLs:
     
     def test_url_expiration_exact_boundary(self):
         """Test URL expiration at exact expiration time."""
-        from backend.app.database import get_session
+        from app.database import get_session
         from unittest import mock
         
         # Create URL that expires in 0.1 seconds
@@ -55,7 +55,7 @@ class TestExpiredURLs:
         alias = resp.json()["alias"]
         
         # Access before expiration should work (immediately)
-        resp = client.get(f"/{alias}", allow_redirects=False)
+        resp = client.get(f"/{alias}", follow_redirects=False)
         assert resp.status_code in (302, 307, 200)
 
 
@@ -219,7 +219,7 @@ class TestConcurrentClicks:
         
         # Make multiple requests
         for _ in range(5):
-            client.get(f"/{alias}", allow_redirects=False)
+            client.get(f"/{alias}", follow_redirects=False)
         
         # Check counter
         resp = client.get(f"/api/v1/info/{alias}?api_key=changeme")
@@ -228,7 +228,7 @@ class TestConcurrentClicks:
     
     def test_clicks_from_different_countries(self):
         """Test clicks from different countries."""
-        from backend.app.database import get_session
+        from app.database import get_session
         
         resp = client.post("/api/v1/shorten", json={"target": "https://example.com"})
         alias = resp.json()["alias"]

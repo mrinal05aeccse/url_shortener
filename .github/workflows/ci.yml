@@ -1,5 +1,16 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - feature/initial-scaffold
+  pull_request:
+    branches:
+      - main
+
 jobs:
-  test:
+  URL-shortener-test-cases:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -158,7 +158,7 @@ class TestExportUtilities:
     def test_export_imports(self):
         """Test that export module can be imported."""
         try:
-            from backend.app.export import (
+            from app.export import (
                 generate_url_summary_csv,
                 generate_daily_analytics_csv,
                 generate_events_csv
@@ -171,7 +171,7 @@ class TestExportUtilities:
     
     def test_csv_output_format(self):
         """Test that CSV output is valid."""
-        from backend.app.export import generate_url_summary_csv
+        from app.export import generate_url_summary_csv
         
         url = URL(alias="test", target="https://example.com")
         events = []
