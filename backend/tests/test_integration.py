@@ -27,16 +27,16 @@ def test_shorten_and_redirect():
     alias = data["alias"]
 
     # redirect
-    r = client.get(f"/{alias}", allow_redirects=False)
+    r = client.get(f"/{alias}", follow_redirects=False)
     # expect redirect or 200 (depending on client)
     assert r.status_code in (302, 307, 200)
     if r.status_code in (302, 307):
-        assert r.headers["location"] == "https://example.com"
+        assert r.headers["location"].rstrip("/") == "https://example.com"
 
 
 def test_analytics_by_country():
     """Test that analytics aggregates clicks by country."""
-    from backend.app.database import get_session
+    from app.database import get_session
     
     # Create a short URL
     resp = client.post("/api/v1/shorten", json={"target": "https://example.com"})
@@ -96,7 +96,7 @@ def test_export_url_summary():
     alias = resp.json()["alias"]
     
     # Record some clicks
-    from backend.app.database import get_session
+    from app.database import get_session
     session = next(get_session())
     url = session.exec(select(URL).where(URL.alias == alias)).first()
     
@@ -121,7 +121,7 @@ def test_export_analytics_csv():
     alias = resp.json()["alias"]
     
     # Record events
-    from backend.app.database import get_session
+    from app.database import get_session
     session = next(get_session())
     url = session.exec(select(URL).where(URL.alias == alias)).first()
     
@@ -145,7 +145,7 @@ def test_export_events_csv():
     alias = resp.json()["alias"]
     
     # Record events
-    from backend.app.database import get_session
+    from app.database import get_session
     session = next(get_session())
     url = session.exec(select(URL).where(URL.alias == alias)).first()
     
