@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 import pytest
 from backend.app.main import app
 from backend.app.database import init_db
-from backend.app.models import URL
+import os
 
 client = TestClient(app)
 
@@ -26,7 +26,7 @@ def test_shorten_and_redirect():
 
     # redirect
     r = client.get(f"/{alias}", allow_redirects=False)
-    assert r.status_code in (302, 307) or r.status_code == 200
-    # if redirect returned, location header should point to target
+    # expect redirect or 200 (depending on client)
+    assert r.status_code in (302, 307, 200)
     if r.status_code in (302, 307):
         assert r.headers["location"] == "https://example.com"
