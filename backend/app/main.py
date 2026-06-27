@@ -3,10 +3,11 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.responses import RedirectResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, AnyUrl, validator
+from pydantic import BaseModel, AnyUrl, field_validator
 from sqlmodel import select
 import os
 import re
+from contextlib import asynccontextmanager
 
 from .database import init_db, get_session
 from .models import URL, ClickEvent
@@ -18,6 +19,12 @@ from .export import (
     generate_events_csv
 )
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize DB (reads DATABASE_URL from env if not provided)
+    init_db()
+    yield
+
 # Initialize FastAPI with documentation
 app = FastAPI(
     title="URL Shortener MVP",
@@ -25,7 +32,8 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    openapi_url="/api/openapi.json"
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan
 )
 
 # Add CORS middleware
@@ -52,7 +60,7 @@ class ShortenRequest(BaseModel):
     custom_alias: Optional[str] = None
     ttl_days: Optional[int] = None
     
-    @validator('custom_alias')
+    @field_validator('custom_alias')
     def validate_custom_alias(cls, v):
         if v in (None, ""):
             return None
@@ -60,7 +68,7 @@ class ShortenRequest(BaseModel):
             raise ValueError('Alias must be 3-20 characters: letters, numbers, -, _')
         return v
     
-    @validator('ttl_days')
+    @field_validator('ttl_days')
     def validate_ttl_days(cls, v):
         if v is not None and abs(v) > 36500:  # 100 years
             raise ValueError('ttl_days must be <= 36500 (100 years)')
@@ -76,13 +84,6 @@ class ShortenResponse(BaseModel):
     """
     alias: str
     target: str
-
-
-@app.on_event("startup")
-def on_startup():
-    # Initialize DB (reads DATABASE_URL from env if not provided)
-    init_db()
-
 
 @app.post("/api/v1/shorten", response_model=ShortenResponse, tags=["URL Shortening"])
 def create_short_url(body: ShortenRequest):

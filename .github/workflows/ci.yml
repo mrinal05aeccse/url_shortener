@@ -10,7 +10,7 @@ on:
       - main
 
 jobs:
-  test:
+  URL-shortener-test-cases:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
