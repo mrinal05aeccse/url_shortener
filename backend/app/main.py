@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Optional
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, AnyUrl
@@ -16,8 +17,8 @@ ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "changeme")
 
 class ShortenRequest(BaseModel):
     target: AnyUrl
-    custom_alias: str | None = None
-    ttl_days: int | None = None
+    custom_alias: Optional[str] = None
+    ttl_days: Optional[int] = None
 
 
 class ShortenResponse(BaseModel):
@@ -88,7 +89,7 @@ def redirect_alias(alias: str, request: Request):
 
 
 @app.get("/api/v1/info/{alias}")
-def info(alias: str, api_key: str | None = None):
+def info(alias: str, api_key: Optional[str] = None):
     if api_key != ADMIN_API_KEY:
         raise HTTPException(status_code=401, detail="unauthorized")
     session = next(get_session())
@@ -100,7 +101,7 @@ def info(alias: str, api_key: str | None = None):
 
 
 @app.get("/api/v1/analytics/{alias}")
-def analytics(alias: str, days: int = 7, api_key: str | None = None):
+def analytics(alias: str, days: int = 7, api_key: Optional[str] = None):
     if api_key != ADMIN_API_KEY:
         raise HTTPException(status_code=401, detail="unauthorized")
     session = next(get_session())
